@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Starter Casino — PG Soft (Frontend)</title>
+<style>
+:root{
+  --bg:#050405; --card:#0b0c0c; --muted:#bdb7aa;
+  --gold:#d4af37; --gold-2:#b88f2a; --accent:#2b2b2b;
+  --glass: rgba(255,255,255,0.03);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#020202,#070605);color:#fff;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:linear-gradient(90deg, rgba(212,175,55,0.04), rgba(184,143,42,0.02));border-bottom:1px solid rgba(212,175,55,0.06)}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-2));display:flex;align-items:center;justify-content:center;color:#050505;font-weight:800;font-size:18px}
+h1{margin:0;font-size:18px}
+nav a{color:var(--muted);text-decoration:none;margin-left:14px;font-size:14px}
+main{max-width:1100px;margin:18px auto;padding:12px}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.02)}
+.small{color:var(--muted);font-size:13px}
+.balance{font-weight:800;color:var(--gold);font-size:24px}
+.btn{background:var(--gold);color:#050505;border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+.btn.secondary{background:transparent;color:var(--gold);border:1px solid rgba(212,175,55,0.12)}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.game{background:#080808;border-radius:10px;padding:12px;border:1px solid rgba(212,175,55,0.04);display:flex;flex-direction:column;justify-content:space-between;height:140px}
+.input{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit;margin-top:8px}
+.footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:12px;z-index:90}
+.modal{width:920px;max-width:100%;background:#070606;border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.02);max-height:90vh;overflow:auto}
+@media(max-width:980px){.grid{grid-template-columns:1fr}.logo{width:44px;height:44px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">SC</div><div><h1>Starter Casino</h1><div class="small">Preto & Dourado • PG Soft • Protótipo</div></div></div>
+  <nav><a href="#" id="linkGames">Jogos</a><a href="#" id="linkAccount">Minha Conta</a><a href="#" id="linkSupport">Suporte</a></nav>
+</header>
+<main>
+  <div class="grid">
+    <aside>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="small">Conta</div><div id="userName" style="font-weight:800">Convidado</div><div id="userEmail" class="small">—</div></div>
+          <div><div class="small">Saldo</div><div class="balance">R$ <span id="saldo">0.00</span></div></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn" id="btnAuth">Entrar / Registrar</button>
+          <button class="btn secondary" id="btnDeposit">Depositar</button>
+        </div>
+        <div style="margin-top:12px" class="small">Backend: <span id="apiBaseView"></span></div>
+      </div>
+      <div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="small">Status</div><div id="backendStatus">—</div></div><div><button class="btn secondary" id="btnPing">Verificar</button></div></div></div>
+    </aside>
+    <section>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="small">Jogos PG Soft</div><h2 style="margin:6px 0">Catálogo</h2></div><div><button class="btn" id="btnRefresh">Atualizar</button></div></div>
+        <div class="games" id="gamesList"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 6px">Atividades</h3><div class="small">Últimas ações</div>
+        <ul id="log" style="margin-top:10px"></ul>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div id="modalAuth" class="modal-bg"><div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>Entrar ou Registrar</h3><button class="btn" onclick="closeAuth()">Fechar</button></div>
+  <div style="margin-top:10px"><input id="authName" class="input" placeholder="Nome de usuário (para registro)" /><input id="authEmail" class="input" placeholder="Email (para registro)" /><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" onclick="doRegister()">Registrar</button><button class="btn secondary" onclick="doLogin()">Entrar (por ID)</button></div><div class="small" style="margin-top:8px">Após registrar, copie o campo user.id do response e use para entrar (protótipo)</div><div id="authMsg" class="small" style="color:#fda4af;margin-top:6px"></div></div>
+</div></div>
+
+<div id="modalDeposit" class="modal-bg"><div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>Depositar (simulado)</h3><button class="btn" onclick="closeDeposit()">Fechar</button></div>
+  <div style="margin-top:10px"><input id="depositAmount" class="input" type="number" min="1" placeholder="Valor em R$" /><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" onclick="doDeposit()">Confirmar depósito</button><button class="btn secondary" onclick="closeDeposit()">Cancelar</button></div><div class="small" style="margin-top:8px">Em produção troque por gateway Pix e webhook.</div></div>
+</div></div>
+
+<div id="modalGame" class="modal-bg"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h3 id="gameTitle">Jogo</h3><button class="btn" onclick="closeGame()">Fechar</button></div><div id="gameFrameHolder" style="margin-top:10px;min-height:420px;background:#040404;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)">Abrindo jogo...</div></div></div>
+
+<footer class="footer">Starter Casino • Protótipo • Preto & Dourado • Mobile-friendly</footer>
+
+<script>
+const API_BASE = 'https://pgsoft-backend.railway.com';
+document.getElementById('apiBaseView').innerText = API_BASE;
+
+function log(msg){ const ul=document.getElementById('log'); const li=document.createElement('li'); li.textContent = new Date().toLocaleTimeString() + ' — ' + msg; ul.prepend(li); }
+function token(){ return localStorage.getItem('sc_token
