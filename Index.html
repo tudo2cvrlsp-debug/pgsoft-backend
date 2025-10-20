@@ -7,8 +7,7 @@
 <style>
 :root{
   --bg:#050405; --card:#0b0c0c; --muted:#bdb7aa;
-  --gold:#d4af37; --gold-2:#b88f2a; --accent:#2b2b2b;
-  --glass: rgba(255,255,255,0.03);
+  --gold:#d4af37; --gold-2:#b88f2a;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 *{box-sizing:border-box}
@@ -70,15 +69,38 @@ main{max-width:1100px;margin:18px auto;padding:12px}
 
 <div id="modalAuth" class="modal-bg"><div class="modal">
   <div style="display:flex;justify-content:space-between;align-items:center"><h3>Entrar ou Registrar</h3><button class="btn" onclick="closeAuth()">Fechar</button></div>
-  <div style="margin-top:10px"><input id="authName" class="input" placeholder="Nome de usuário (para registro)" /><input id="authEmail" class="input" placeholder="Email (para registro)" /><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" onclick="doRegister()">Registrar</button><button class="btn secondary" onclick="doLogin()">Entrar (por ID)</button></div><div class="small" style="margin-top:8px">Após registrar, copie o campo user.id do response e use para entrar (protótipo)</div><div id="authMsg" class="small" style="color:#fda4af;margin-top:6px"></div></div>
+  <div style="margin-top:10px">
+    <input id="authName" class="input" placeholder="Nome de usuário (para registro)" />
+    <input id="authEmail" class="input" placeholder="Email (para registro)" />
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="doRegister()">Registrar</button>
+      <button class="btn secondary" onclick="doLogin()">Entrar (por ID)</button>
+    </div>
+    <div class="small" style="margin-top:8px">Após registrar, copie o campo user.id do response e use para entrar (protótipo)</div>
+    <div id="authMsg" class="small" style="color:#fda4af;margin-top:6px"></div>
+  </div>
 </div></div>
 
 <div id="modalDeposit" class="modal-bg"><div class="modal">
   <div style="display:flex;justify-content:space-between;align-items:center"><h3>Depositar (simulado)</h3><button class="btn" onclick="closeDeposit()">Fechar</button></div>
-  <div style="margin-top:10px"><input id="depositAmount" class="input" type="number" min="1" placeholder="Valor em R$" /><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" onclick="doDeposit()">Confirmar depósito</button><button class="btn secondary" onclick="closeDeposit()">Cancelar</button></div><div class="small" style="margin-top:8px">Em produção troque por gateway Pix e webhook.</div></div>
+  <div style="margin-top:10px">
+    <input id="depositAmount" class="input" type="number" min="1" placeholder="Valor em R$" />
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="doDeposit()">Confirmar depósito</button>
+      <button class="btn secondary" onclick="closeDeposit()">Cancelar</button>
+    </div>
+    <div class="small" style="margin-top:8px">Em produção troque por gateway Pix e webhook.</div>
+  </div>
 </div></div>
 
-<div id="modalGame" class="modal-bg"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h3 id="gameTitle">Jogo</h3><button class="btn" onclick="closeGame()">Fechar</button></div><div id="gameFrameHolder" style="margin-top:10px;min-height:420px;background:#040404;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)">Abrindo jogo...</div></div></div>
+<div id="modalGame" class="modal-bg"><div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 id="gameTitle">Jogo</h3><button class="btn" onclick="closeGame()">Fechar</button>
+  </div>
+  <div id="gameFrameHolder" style="margin-top:10px;min-height:420px;background:#040404;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)">
+    Abrindo jogo...
+  </div>
+</div></div>
 
 <footer class="footer">Starter Casino • Protótipo • Preto & Dourado • Mobile-friendly</footer>
 
@@ -87,4 +109,41 @@ const API_BASE = 'https://pgsoft-backend.railway.com';
 document.getElementById('apiBaseView').innerText = API_BASE;
 
 function log(msg){ const ul=document.getElementById('log'); const li=document.createElement('li'); li.textContent = new Date().toLocaleTimeString() + ' — ' + msg; ul.prepend(li); }
-function token(){ return localStorage.getItem('sc_token
+function token(){ return localStorage.getItem('sc_token'); }
+function authHeaders(){ const t=token(); return t ? {'Authorization':'Bearer '+t,'Content-Type':'application/json'} : {'Content-Type':'application/json'}; }
+
+document.getElementById('btnAuth').onclick = ()=>openAuth();
+document.getElementById('btnDeposit').onclick = ()=>openDeposit();
+document.getElementById('btnPing').onclick = checkBackend;
+document.getElementById('btnRefresh').onclick = renderGames;
+
+function openAuth(){ document.getElementById('modalAuth').style.display='flex'; }
+function closeAuth(){ document.getElementById('modalAuth').style.display='none'; document.getElementById('authMsg').innerText=''; }
+function openDeposit(){ document.getElementById('modalDeposit').style.display='flex'; }
+function closeDeposit(){ document.getElementById('modalDeposit').style.display='none'; }
+function openGameModal(){ document.getElementById('modalGame').style.display='flex'; }
+function closeGame(){ document.getElementById('modalGame').style.display='none'; document.getElementById('gameFrameHolder').innerHTML='Abrindo jogo...'; }
+
+async function api(path, opts={}){ const res=await fetch(API_BASE+path,opts); const data=await res.json().catch(()=>({})); if(!res.ok) throw {status:res.status,body:data}; return data; }
+
+async function doRegister(){ const username=document.getElementById('authName').value.trim(); const email=document.getElementById('authEmail').value.trim(); if(!username||!email){ document.getElementById('authMsg').innerText='Preencha os campos'; return; } try{ const data=await api('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email})}); localStorage.setItem('sc_token',data.token); localStorage.setItem('sc_user',JSON.stringify(data.user)); updateUI(); closeAuth(); log('Registrado: '+data.user.username); }catch(err){ document.getElementById('authMsg').innerText='Erro ao registrar'; } }
+
+async function doLogin(){ const id=prompt('Cole aqui seu user.id (veio no response do register):'); if(!id) return; try{ const data=await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); localStorage.setItem('sc_token',data.token); localStorage.setItem('sc_user',JSON.stringify(data.user)); updateUI(); closeAuth(); log('Login: '+data.user.username); }catch(err){ document.getElementById('authMsg').innerText='Erro no login'; } }
+
+async function updateUI(){ const userRaw=localStorage.getItem('sc_user'); if(!userRaw){ document.getElementById('userName').innerText='Convidado'; document.getElementById('userEmail').innerText='—'; document.getElementById('saldo').innerText='0.00'; return; } const user=JSON.parse(userRaw); document.getElementById('userName').innerText=user.username; document.getElementById('userEmail').innerText=user.email; try{ const b=await api('/api/balance',{method:'GET',headers:authHeaders()}); document.getElementById('saldo').innerText=Number(b.balance).toFixed(2); }catch(e){ document.getElementById('saldo').innerText='0.00'; } }
+
+async function doDeposit(){ const v=Number(document.getElementById('depositAmount').value); if(!v||v<=0) return alert('Informe valor válido'); try{ const r=await api('/api/deposit',{method:'POST',headers:authHeaders(),body:JSON.stringify({amount:v})}); document.getElementById('saldo').innerText=Number(r.balance).toFixed(2); closeDeposit(); log('Depósito: R$ '+v); }catch(e){ alert('Erro no depósito'); } }
+
+function sampleGames(){ return [ {id:'pg_slot_1',name:'Dragon Legend',provider:'PG Soft'}, {id:'pg_slot_2',name:'Lucky Fortune',provider:'PG Soft'}, {id:'pg_roulette',name:'Royal Roulette',provider:'PG Soft'} ]; }
+function renderGames(){ const list=document.getElementById('gamesList'); list.innerHTML=''; sampleGames().forEach(g=>{ const el=document.createElement('div'); el.className='game'; el.innerHTML=`<div><div style="font-weight:800">${g.name}</div><div class="small">${g.provider}</div></div><div style="display:flex;gap:8px"><button class="btn" onclick="playGame('${g.id}','${g.name}')">Jogar</button><button class="btn secondary" onclick="openDemo('${g.id}')">Demo</button></div>`; list.appendChild(el); }); }
+
+async function playGame(gameId,name){ if(!token()){ alert('Faça login'); return; } openGameModal(); document.getElementById('gameTitle').innerText='Carregando: '+name; document.getElementById('gameFrameHolder').innerText='Carregando...'; try{ const data=await api('/api/game/session',{method:'POST',headers:authHeaders(),body:JSON.stringify({gameId})}); const url=data.iframeUrl||data.url; if(!url){ document.getElementById('gameFrameHolder').innerText='Iframe não retornado'; return; } document.getElementById('gameFrameHolder').innerHTML=`<iframe src="${url}" style="width:100%;height:560px;border:0;border-radius:8px"></iframe>`; log('Jogo aberto: '+name); }catch(e){ document.getElementById('gameFrameHolder').innerText='Erro ao abrir o jogo'; } }
+
+function openDemo(id){ openGameModal(); document.getElementById('gameTitle').innerText='Demo: '+id; document.getElementById('gameFrameHolder').innerHTML='<div style="padding:18px;color:var(--muted)">Demo local — agregador abrirá o jogo em produção</div>'; }
+
+async function checkBackend(){ try{ const r=await fetch(API_BASE+'/'); document.getElementById('backendStatus').innerText=r.ok?'Online':'Online (/ not found)'; log('Backend verificado'); }catch(e){ document.getElementById('backendStatus').innerText='Offline'; log('Backend offline'); } }
+
+renderGames(); updateUI(); checkBackend();
+</script>
+</body>
+</html>
